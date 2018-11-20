@@ -10,7 +10,7 @@ from Shoe import Shoe
 POPULATION_SIZE = 100
 NUMBER_DECKS = 6
 HANDS_PER_GENERATION = 2500
-NUMBER_GENERATIONS = 1000
+NUMBER_GENERATIONS = 200
 MUTATION_RATE = 0.1
 
 
@@ -95,6 +95,7 @@ if __name__ == "__main__":
             fitness_scores = pool.starmap(worker, new_population)
         print('Generation ' + str(gen) + ': ' +
               str(sum(fitness_scores) / len(fitness_scores)))
-        print(new_population)
+        if gen % 10 == 0:
+            print(new_population)
 
     sys.exit()
