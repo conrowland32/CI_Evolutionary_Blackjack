@@ -26,34 +26,9 @@ class Player:
         self.split_table = split_table
         self.money = 0.0
 
-    # def random_start(self):
-    #     self.decision_table = {
-    #         "H4": [], "H5": [], "H6": [], "H7": [], "H8": [],
-    #         "H9": [], "H10": [], "H11": [], "H12": [], "H13": [],
-    #         "H14": [], "H15": [], "H16": [], "H17": [], "H18": [],
-    #         "H19": [], "H20": [], "S12": [], "S13": [], "S14": [],
-    #         "S15": [], "S16": [], "S17": [], "S18": [], "S19": [], "S20": []
-    #     }
-    #     self.split_table = {
-    #         "2": [], "3": [], "4": [], "5": [], "6": [],
-    #         "7": [], "8": [], "9": [], "10": [], "A": []
-    #     }
-
-    #     for hand in self.decision_table:
-    #         for _ in range(10):
-    #             self.decision_table[hand].append(
-    #                 rand.choice(["S", "H", "DS", "DH"]))
-    #     # print(self.decision_table)
-
-    #     for hand in self.split_table:
-    #         for _ in range(10):
-    #             self.split_table[hand].append(rand.choice(["P", "D"]))
-    #     # print(self.split_table)
-
+    # Play number of hands with given shoe
     def play(self, shoe, num_hands):
-        # Play number of hands for full generation
         for _ in range(num_hands):
-            # print('Hand ', str(i))
             # Reshuffle shoe every hand -- simulates CSM
             shoe.shuffle()
             new_cards = shoe.deal()
@@ -66,7 +41,6 @@ class Player:
             # Check for dealer blackjack
             if ch.get_raw_value(self.dealer_hand) == 21:
                 self.money -= BET_VALUE
-                # print('Dealer BlackJack!', self.money)
                 continue
 
             # Play the hand, and if it is split, play the split hand
@@ -81,38 +55,32 @@ class Player:
             # Let the dealer take their turn
             ch.play_dealer(self.dealer_hand, shoe)
 
-            # Check if each hand is a winner
+            # Check if each hand is a winner and update money accordingly
             if self.hand2 is not None or len(self.hand1) > 2 or ch.get_raw_value(self.hand1) != 21:
                 winner = ch.check_winner(self.hand1, self.dealer_hand)
                 if winner == 'player':
                     self.money += self.hand1_bet
-                    # print('Player wins', self.money)
                 elif winner == 'dealer':
                     self.money -= self.hand1_bet
-                    # print('Dealer wins', self.money)
             if self.hand2 is not None:
                 winner = ch.check_winner(self.hand2, self.dealer_hand)
                 if winner == 'player':
                     self.money += self.hand2_bet
-                    # print('Player wins', self.money)
                 elif winner == 'dealer':
                     self.money -= self.hand2_bet
-                    # print('Dealer wins', self.money)
-            # print(self.hand1, self.hand2, self.dealer_hand)
         return self.money
 
+    # Play out a given hand using player's strategy
     def play_hand(self, shoe, hand):
-        # Play hand using decision tables
         hand_val = ch.get_adjusted_value(hand)
+        # Blackjack
         if hand_val == 21:
             self.money += 1.5 * BET_VALUE
-            # print('Blackjack!', str(self.money))
             return
+
+        # Play until stand or bust
         while hand_val < 21:
             decision = self.get_decision(hand_val, hand)
-            # print('Player cards:', str(hand),
-            #   ' Dealer cards:', str(self.dealer_hand))
-            # print('Decision: ', decision)
 
             # Stand
             if decision == 'S':
@@ -152,6 +120,7 @@ class Player:
             # Update hand value
             hand_val = ch.get_adjusted_value(hand)
 
+    # Lookup a table decision based on hand
     def get_decision(self, hand_val, hand):
         # Check if we can split
         dealer_upcard = CARDS[self.dealer_hand[1]]
@@ -171,5 +140,6 @@ class Player:
             hand_string = "H" + str(hand_val)
         return self.decision_table[hand_string][dealer_upcard-2]
 
+    # Hit (get new card)
     def hit(self, hand, shoe):
         hand.append(shoe.hit())

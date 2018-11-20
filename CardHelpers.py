@@ -2,6 +2,7 @@ CARDS = {"Two": 2, "Three": 3, "Four": 4, "Five": 5, "Six": 6, "Seven": 7,
          "Eight": 8, "Nine": 9, "Ten": 10, "Jack": 10, "Queen": 10, "King": 10, "Ace": 11}
 
 
+# Determine if a hand is soft (has an Ace counting as 11)
 def is_soft(hand):
     if 'Ace' not in hand:
         return False
@@ -10,6 +11,7 @@ def is_soft(hand):
     return True
 
 
+# Get the adjusted value of hand (count Aces as 1 if needed)
 def get_adjusted_value(hand):
     value = get_raw_value(hand)
     if 'Ace' not in hand:
@@ -21,6 +23,7 @@ def get_adjusted_value(hand):
     return value
 
 
+# Get the raw value of a hand (all Aces counting as 11)
 def get_raw_value(hand):
     value = 0
     for card in hand:
@@ -28,6 +31,7 @@ def get_raw_value(hand):
     return value
 
 
+# Play the dealer's hand
 def play_dealer(hand, shoe):
     while get_adjusted_value(hand) < 18:
         if get_adjusted_value(hand) == 17 and not is_soft(hand):
@@ -36,6 +40,7 @@ def play_dealer(hand, shoe):
             hand.append(shoe.hit())
 
 
+# Given the player and dealer hand, determine who wins
 def check_winner(player_hand, dealer_hand):
     player_val = get_adjusted_value(player_hand)
     dealer_val = get_adjusted_value(dealer_hand)

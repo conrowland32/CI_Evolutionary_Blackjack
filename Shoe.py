@@ -9,6 +9,7 @@ class Shoe:
         self.num_decks = num_decks
         self.shuffle()
 
+    # Shuffle the deck
     def shuffle(self):
         self.cards = []
         for _ in range(self.num_decks):
@@ -16,10 +17,12 @@ class Shoe:
                 for _ in range(4):
                     self.cards.append(c)
         rand.shuffle(self.cards)
-        # print(self.cards)
 
+    # Pop four cards off the shoe for the starting deal
+    #  (2 for player, 2 for dealer)
     def deal(self):
         return [self.cards.pop() for _ in range(4)]
 
+    # Pop one card off the shoe and return it
     def hit(self):
         return self.cards.pop()

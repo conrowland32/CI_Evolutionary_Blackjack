@@ -7,32 +7,34 @@ from Player import Player
 from Shoe import Shoe
 
 
-POPULATION_SIZE = 100
+POPULATION_SIZE = 60
 NUMBER_DECKS = 6
-HANDS_PER_GENERATION = 2500
-NUMBER_GENERATIONS = 200
+HANDS_PER_GENERATION = 200000
+NUMBER_GENERATIONS = 1000
 MUTATION_RATE = 0.1
 
 
+# Worker that creates a new shoe, new player with the given decision tables,
+#  and play the new player
 def worker(decision_table=None, split_table=None):
     shoe = Shoe(NUMBER_DECKS)
     player = Player(decision_table, split_table)
     finish_amount = player.play(shoe, HANDS_PER_GENERATION)
-    # print(finish_amount)
     return finish_amount
 
 
-def mutate(population):
+# Simple function to mutate every other individual in population based on rate
+def mutate(population, rate):
     for i in range(0, len(population), 2):
         individual = population[i]
         for key in individual[0]:
             for i, _ in enumerate(individual[0][key]):
-                if rand.random() < MUTATION_RATE:
+                if rand.random() < rate:
                     individual[0][key][i] = rand.choice(
                         ["S", "H", "DS", "DH"])
         for key in individual[1]:
             for i, _ in enumerate(individual[1][key]):
-                if rand.random() < MUTATION_RATE:
+                if rand.random() < rate:
                     individual[1][key][i] = rand.choice(["P", "D"])
 
 
@@ -66,8 +68,6 @@ if __name__ == "__main__":
     # Spawn and run processes for generation
     with multiprocessing.Pool(POPULATION_SIZE) as pool:
         fitness_scores = pool.starmap(worker, new_population)
-
-    test_table = new_population[0]
     print('Generation 1:', str(sum(fitness_scores) / len(fitness_scores)))
 
     # Run more generations
@@ -86,16 +86,19 @@ if __name__ == "__main__":
             else:
                 survivor_indices.append(occurences[0])
 
-        # Create new population
+        # Create new population and mutate some
         new_population = [new_population[x]
                           for x in survivor_indices for _ in range(2)]
-        mutate(new_population)
+        new_rate = MUTATION_RATE - ((MUTATION_RATE / NUMBER_GENERATIONS) * gen)
+        mutate(new_population, new_rate)
 
+        # Run another generation with new population
         with multiprocessing.Pool(POPULATION_SIZE) as pool:
             fitness_scores = pool.starmap(worker, new_population)
         print('Generation ' + str(gen) + ': ' +
               str(sum(fitness_scores) / len(fitness_scores)))
         if gen % 10 == 0:
-            print(new_population)
+            print(new_population[1], new_rate)
 
+    print(new_population[0])
     sys.exit()
