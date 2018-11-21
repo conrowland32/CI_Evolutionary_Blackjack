@@ -8,10 +8,10 @@ from Shoe import Shoe
 
 
 POPULATION_SIZE = 60
-NUMBER_DECKS = 6
-HANDS_PER_GENERATION = 200000
+NUMBER_DECKS = 2
+HANDS_PER_GENERATION = 10000
 NUMBER_GENERATIONS = 1000
-MUTATION_RATE = 0.1
+MUTATION_RATE = 0.2
 
 
 # Worker that creates a new shoe, new player with the given decision tables,
@@ -65,13 +65,14 @@ if __name__ == "__main__":
 
         new_population.append((start_decision_table, start_split_table))
 
-    # Spawn and run processes for generation
-    with multiprocessing.Pool(POPULATION_SIZE) as pool:
-        fitness_scores = pool.starmap(worker, new_population)
-    print('Generation 1:', str(sum(fitness_scores) / len(fitness_scores)))
+    # Run generations
+    for gen in range(NUMBER_GENERATIONS):
+        # Spawn and run player processes
+        with multiprocessing.Pool(POPULATION_SIZE) as pool:
+            fitness_scores = pool.starmap(worker, new_population)
+        print('Generation ' + str(gen+1) + ': ' +
+              str(sum(fitness_scores) / len(fitness_scores)))
 
-    # Run more generations
-    for gen in range(2, NUMBER_GENERATIONS+1):
         # Get the top half of the population
         survivors = sorted(fitness_scores, reverse=True)[
             :int(POPULATION_SIZE/2)]
@@ -86,19 +87,16 @@ if __name__ == "__main__":
             else:
                 survivor_indices.append(occurences[0])
 
+        # Every 10 generations, print our current most fit table
+        if gen % 10 == 0:
+            print(new_population[survivor_indices[0]])
+
         # Create new population and mutate some
-        new_population = [new_population[x]
+        old_population = new_population.copy()
+        new_population = [old_population[x]
                           for x in survivor_indices for _ in range(2)]
         new_rate = MUTATION_RATE - ((MUTATION_RATE / NUMBER_GENERATIONS) * gen)
         mutate(new_population, new_rate)
-
-        # Run another generation with new population
-        with multiprocessing.Pool(POPULATION_SIZE) as pool:
-            fitness_scores = pool.starmap(worker, new_population)
-        print('Generation ' + str(gen) + ': ' +
-              str(sum(fitness_scores) / len(fitness_scores)))
-        if gen % 10 == 0:
-            print(new_population[1], new_rate)
 
     print(new_population[0])
     sys.exit()
