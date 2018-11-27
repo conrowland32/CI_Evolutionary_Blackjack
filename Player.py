@@ -87,7 +87,7 @@ class Player:
                 return
             # Hit
             elif decision == 'H':
-                self.hit(hand, shoe)
+                hand.append(shoe.hit())
             # Double if possible, otherwise stand
             elif decision == 'DS':
                 if len(hand) == 2:
@@ -95,7 +95,7 @@ class Player:
                         self.hand1_bet *= 2
                     else:
                         self.hand2_bet *= 2
-                    self.hit(hand, shoe)
+                    hand.append(shoe.hit())
                     return
                 else:
                     return
@@ -106,40 +106,103 @@ class Player:
                         self.hand1_bet *= 2
                     else:
                         self.hand2_bet *= 2
-                    self.hit(hand, shoe)
+                    hand.append(shoe.hit())
                     return
                 else:
-                    self.hit(hand, shoe)
+                    hand.append(shoe.hit())
             # Split
             elif decision == 'P':
                 self.hand2 = [self.hand1.pop()]
                 self.hand2_bet = BET_VALUE
-                self.hit(self.hand1, shoe)
-                self.hit(self.hand2, shoe)
+                self.hand1.append(shoe.hit())
+                self.hand2.append(shoe.hit())
 
             # Update hand value
             hand_val = ch.get_adjusted_value(hand)
 
-    # Lookup a table decision based on hand
     def get_decision(self, hand_val, hand):
-        # Check if we can split
         dealer_upcard = CARDS[self.dealer_hand[1]]
-        if len(hand) == 2 and hand[0] == hand[1]:
-            if hand[0] == 'Ace':
-                hand_string = 'A'
-            else:
-                hand_string = str(CARDS[hand[0]])
-            decision = self.split_table[hand_string][dealer_upcard-2]
-            if decision == 'P' and self.hand2 is None:
-                return decision
+        if len(hand) == 2 and hand[0] == hand[1] and hand is self.hand1:
+            if hand[0] == 'Ace' or hand[0] == 'Eight':
+                return 'P'
+            if hand[0] == 'Two' or hand[0] == 'Three' or hand[0] == 'Seven':
+                if dealer_upcard < 8:
+                    return 'P'
+                else:
+                    return 'H'
+            if hand[0] == 'Four':
+                if dealer_upcard == 5 or dealer_upcard == 6:
+                    return 'P'
+                else:
+                    return 'H'
+            if hand[0] == 'Six':
+                if dealer_upcard < 7:
+                    return 'P'
+                else:
+                    return 'H'
+            if hand[0] == 'Nine':
+                if dealer_upcard in [7, 10, 11]:
+                    return 'S'
+                else:
+                    return 'P'
 
-        # If we can't split, or don't want to
+        if not ch.is_soft(hand):
+            if hand_val < 9:
+                return 'H'
+            if hand_val == 9:
+                if dealer_upcard == 2 or dealer_upcard > 6:
+                    return 'H'
+                else:
+                    return 'DH'
+            if hand_val == 10:
+                if dealer_upcard < 10:
+                    return 'DH'
+                else:
+                    return 'H'
+            if hand_val == 11:
+                return 'DH'
+            if hand_val == 12:
+                if dealer_upcard < 4 or dealer_upcard > 6:
+                    return 'H'
+                else:
+                    return 'S'
+            if hand_val > 12 and hand_val < 17:
+                if dealer_upcard < 7:
+                    return 'S'
+                else:
+                    return 'H'
+            if hand_val > 16:
+                return 'S'
+
         if ch.is_soft(hand):
-            hand_string = "S" + str(hand_val)
-        else:
-            hand_string = "H" + str(hand_val)
-        return self.decision_table[hand_string][dealer_upcard-2]
-
-    # Hit (get new card)
-    def hit(self, hand, shoe):
-        hand.append(shoe.hit())
+            if hand_val == 12:
+                return 'H'
+            if hand_val == 13 or hand_val == 14:
+                if dealer_upcard == 5 or dealer_upcard == 6:
+                    return 'DH'
+                else:
+                    return 'H'
+            if hand_val == 15 or hand_val == 16:
+                if dealer_upcard < 4 or dealer_upcard > 6:
+                    return 'H'
+                else:
+                    return 'DH'
+            if hand_val == 17:
+                if dealer_upcard == 2 or dealer_upcard > 6:
+                    return 'H'
+                else:
+                    return 'DH'
+            if hand_val == 18:
+                if dealer_upcard < 7:
+                    return 'DS'
+                if dealer_upcard < 9:
+                    return 'S'
+                else:
+                    return 'H'
+            if hand_val == 19:
+                if dealer_upcard == 6:
+                    return 'DS'
+                else:
+                    return 'S'
+            if hand_val > 19:
+                return 'S'

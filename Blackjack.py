@@ -1,17 +1,15 @@
 import sys
 import multiprocessing
-import time
 import random as rand
-from itertools import product
 from Player import Player
 from Shoe import Shoe
 
 
-POPULATION_SIZE = 60
-NUMBER_DECKS = 2
-HANDS_PER_GENERATION = 10000
+POPULATION_SIZE = 100
+NUMBER_DECKS = 4
+HANDS_PER_GENERATION = 1000
 NUMBER_GENERATIONS = 1000
-MUTATION_RATE = 0.2
+MUTATION_RATE = 0.01
 
 
 # Worker that creates a new shoe, new player with the given decision tables,
