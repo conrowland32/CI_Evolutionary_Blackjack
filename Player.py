@@ -8,13 +8,13 @@ BET_VALUE = 2
 
 # Decisions
 """
-Normal decisions: 17h/8s
+Normal decisions (soft or hard hands):
 S  -> Stand
 H  -> Hit
 DH -> Double if allowed, otherwise hit
 DS -> Double if allowed, otherwise stand
 
-Split table decisions: 10
+Split table decisions (pair of same card):
 P  -> Split
 D  -> Default (to normal value)
 """
