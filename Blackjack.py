@@ -15,29 +15,25 @@ MUTATION_RATE = 0.01
 # Worker that creates a new shoe, new player with the given decision tables,
 #  and play the new player
 def worker(decision_table=None, split_table=None):
+    """
+    This function creates workers that can be run in parallel. Each worker
+    should create and run a new player. The parameters should be replaced with
+    whatever structure you are using to make player decisions (decision tables,
+    neural networks, etc.).
+    """
     shoe = Shoe(NUMBER_DECKS)
     player = Player(decision_table, split_table)
     finish_amount = player.play(shoe, HANDS_PER_GENERATION)
     return finish_amount
 
 
-# Simple function to mutate every other individual in population based on rate
-def mutate(population, rate):
-    for i in range(0, len(population), 2):
-        individual = population[i]
-        for key in individual[0]:
-            for i, _ in enumerate(individual[0][key]):
-                if rand.random() < rate:
-                    individual[0][key][i] = rand.choice(
-                        ["S", "H", "DS", "DH"])
-        for key in individual[1]:
-            for i, _ in enumerate(individual[1][key]):
-                if rand.random() < rate:
-                    individual[1][key][i] = rand.choice(["P", "D"])
-
-
 if __name__ == "__main__":
-    # Initialize starting decision tables
+    # Initialize starting player strategy structures
+    """
+    First, initialize the structure you are using to represent player strategy.
+    The example below creates random decision tables, but this is also where
+    you should create random new neural networks, etc.
+    """
     new_population = []
     for _ in range(POPULATION_SIZE):
         start_decision_table = {
@@ -61,6 +57,11 @@ if __name__ == "__main__":
             for _ in range(10):
                 start_split_table[hand].append(rand.choice(["P", "D"]))
 
+        """
+        Be sure to append all needed structures to new_population as a tuple
+        when you are done; this is what will be passed to workers as
+        parameters.
+        """
         new_population.append((start_decision_table, start_split_table))
 
     # Run generations
@@ -71,30 +72,14 @@ if __name__ == "__main__":
         print('Generation ' + str(gen+1) + ': ' +
               str(sum(fitness_scores) / len(fitness_scores)))
 
-        # Get the top half of the population
-        survivors = sorted(fitness_scores, reverse=True)[
-            :int(POPULATION_SIZE/2)]
-        survivor_indices = []
-        for individual in survivors:
-            occurences = [i for i, x in enumerate(
-                fitness_scores) if x == individual]
-            if len(occurences) > 1:
-                for ind in occurences:
-                    if ind not in survivor_indices:
-                        survivor_indices.append(ind)
-            else:
-                survivor_indices.append(occurences[0])
-
-        # Every 10 generations, print our current most fit table
-        if gen % 10 == 0:
-            print(new_population[survivor_indices[0]])
-
-        # Create new population and mutate some
-        old_population = new_population.copy()
-        new_population = [old_population[x]
-                          for x in survivor_indices for _ in range(2)]
-        new_rate = MUTATION_RATE - ((MUTATION_RATE / NUMBER_GENERATIONS) * gen)
-        mutate(new_population, new_rate)
+        """
+        Now that all the workers have been run, fitness_scores should contain
+        the total money won or lost by each player. This is where you should
+        add the additional learning for your solution: backpropogation,
+        mutation, crossover, etc. When you are done with this step, be sure to
+        create the new population and store it in new_population the same as
+        before.
+        """
 
     print(new_population[0])
     sys.exit()

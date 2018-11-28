@@ -120,7 +120,17 @@ class Player:
             # Update hand value
             hand_val = ch.get_adjusted_value(hand)
 
+    # Get the decision the player will make based on their strategy
     def get_decision(self, hand_val, hand):
+        """
+        This is where you should implement the decision-making for your
+        experiment. For example, if you are training neural networks to make
+        decisions, this function should take the applicable inputs (player
+        hand, dealer hand, etc.) and compute the network output decision.
+
+        The sample provided below is hard-coded basic strategy. The player
+        return for this method should be ~99.5%
+        """
         dealer_upcard = CARDS[self.dealer_hand[1]]
         if len(hand) == 2 and hand[0] == hand[1] and hand is self.hand1:
             if hand[0] == 'Ace' or hand[0] == 'Eight':
