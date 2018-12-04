@@ -5,10 +5,10 @@ from Player import Player
 from Shoe import Shoe
 
 
-POPULATION_SIZE = 100
+POPULATION_SIZE = 60
 NUMBER_DECKS = 4
-HANDS_PER_GENERATION = 1000
-NUMBER_GENERATIONS = 1000
+HANDS_PER_GENERATION = 10000
+NUMBER_GENERATIONS = 100
 MUTATION_RATE = 0.01
 
 
@@ -17,8 +17,8 @@ MUTATION_RATE = 0.01
 def worker(decision_table=None, split_table=None):
     shoe = Shoe(NUMBER_DECKS)
     player = Player(decision_table, split_table)
-    finish_amount = player.play(shoe, HANDS_PER_GENERATION)
-    return finish_amount
+    finish = player.play(shoe, HANDS_PER_GENERATION)
+    return finish
 
 
 # Simple function to mutate every other individual in population based on rate
@@ -67,34 +67,40 @@ if __name__ == "__main__":
     for gen in range(NUMBER_GENERATIONS):
         # Spawn and run player processes
         with multiprocessing.Pool(POPULATION_SIZE) as pool:
-            fitness_scores = pool.starmap(worker, new_population)
+            worker_return = pool.starmap(worker, new_population)
         print('Generation ' + str(gen+1) + ': ' +
-              str(sum(fitness_scores) / len(fitness_scores)))
+              str(sum([x[2] for x in worker_return]) / len([x[2] for x in worker_return])) +
+              '  (best: ' + str(max([x[2] for x in worker_return])) + ')')
 
-        # Get the top half of the population
-        survivors = sorted(fitness_scores, reverse=True)[
-            :int(POPULATION_SIZE/2)]
-        survivor_indices = []
-        for individual in survivors:
-            occurences = [i for i, x in enumerate(
-                fitness_scores) if x == individual]
-            if len(occurences) > 1:
-                for ind in occurences:
-                    if ind not in survivor_indices:
-                        survivor_indices.append(ind)
-            else:
-                survivor_indices.append(occurences[0])
+        # Sort player returns by performance
+        worker_return.sort(key=lambda tup: tup[2], reverse=True)
+        survivors = worker_return[:int(POPULATION_SIZE/2)]
+
+        # # Get the top half of the population
+        # survivors = sorted(fitness_scores, reverse=True)[
+        #     :int(POPULATION_SIZE/2)]
+        # survivor_indices = []
+        # for individual in survivors:
+        #     occurences = [i for i, x in enumerate(
+        #         fitness_scores) if x == individual]
+        #     if len(occurences) > 1:
+        #         for ind in occurences:
+        #             if ind not in survivor_indices:
+        #                 survivor_indices.append(ind)
+        #     else:
+        #         survivor_indices.append(occurences[0])
 
         # Every 10 generations, print our current most fit table
         if gen % 10 == 0:
-            print(new_population[survivor_indices[0]])
+            print(new_population[0])
 
         # Create new population and mutate some
-        old_population = new_population.copy()
-        new_population = [old_population[x]
-                          for x in survivor_indices for _ in range(2)]
-        new_rate = MUTATION_RATE - ((MUTATION_RATE / NUMBER_GENERATIONS) * gen)
-        mutate(new_population, new_rate)
+        new_population = [(x[0], x[1]) for x in survivors for _ in range(2)]
+        # old_population = new_population.copy()
+        # new_population = [old_population[x]
+        #                   for x in survivor_indices for _ in range(2)]
+        # new_rate = MUTATION_RATE - ((MUTATION_RATE / NUMBER_GENERATIONS) * gen)
+        # mutate(new_population, new_rate)
 
     print(new_population[0])
     sys.exit()

@@ -25,10 +25,27 @@ class Player:
         self.decision_table = decision_table
         self.split_table = split_table
         self.money = 0.0
+        self.decision_gene_score = {
+            "H4": [], "H5": [], "H6": [], "H7": [], "H8": [],
+            "H9": [], "H10": [], "H11": [], "H12": [], "H13": [],
+            "H14": [], "H15": [], "H16": [], "H17": [], "H18": [],
+            "H19": [], "H20": [], "S12": [], "S13": [], "S14": [],
+            "S15": [], "S16": [], "S17": [], "S18": [], "S19": [], "S20": []
+        }
+        self.split_gene_score = {
+            "2": [], "3": [], "4": [], "5": [], "6": [],
+            "7": [], "8": [], "9": [], "10": [], "A": []
+        }
+        for hand in self.decision_gene_score:
+            self.decision_gene_score[hand] = [0] * 10
+        for hand in self.split_gene_score:
+            self.split_gene_score[hand] = [0] * 10
+        self.hand_decisions = []
 
     # Play number of hands with given shoe
     def play(self, shoe, num_hands):
         for _ in range(num_hands):
+            self.hand_decisions = []
             # Reshuffle shoe every hand -- simulates CSM
             shoe.shuffle()
             new_cards = shoe.deal()
@@ -60,15 +77,39 @@ class Player:
                 winner = ch.check_winner(self.hand1, self.dealer_hand)
                 if winner == 'player':
                     self.money += self.hand1_bet
+                    for decision in self.hand_decisions:
+                        if decision[0][0] in ["H", "S"]:
+                            self.decision_gene_score[decision[0]
+                                                     ][decision[1]] += 1
+                        else:
+                            self.split_gene_score[decision[0]
+                                                  ][decision[1]] += 1
                 elif winner == 'dealer':
                     self.money -= self.hand1_bet
+                    for decision in self.hand_decisions:
+                        if decision[0][0] in ["H", "S"]:
+                            self.decision_gene_score[decision[0]
+                                                     ][decision[1]] -= 1
+                        else:
+                            self.split_gene_score[decision[0]
+                                                  ][decision[1]] -= 1
             if self.hand2 is not None:
                 winner = ch.check_winner(self.hand2, self.dealer_hand)
                 if winner == 'player':
                     self.money += self.hand2_bet
                 elif winner == 'dealer':
                     self.money -= self.hand2_bet
-        return self.money
+
+        for phand in self.decision_table:
+            for i in range(10):
+                if self.decision_gene_score[phand][i] < 0:
+                    self.decision_table[phand][i] = rand.choice(
+                        ["S", "H", "DS", "DH"])
+        for phand in self.split_table:
+            for i in range(10):
+                if self.split_gene_score[phand][i] < 0:
+                    self.split_table[phand][i] = rand.choice(["P", "D"])
+        return (self.decision_table, self.split_table, self.money)
 
     # Play out a given hand using player's strategy
     def play_hand(self, shoe, hand):
@@ -123,86 +164,104 @@ class Player:
     def get_decision(self, hand_val, hand):
         dealer_upcard = CARDS[self.dealer_hand[1]]
         if len(hand) == 2 and hand[0] == hand[1] and hand is self.hand1:
-            if hand[0] == 'Ace' or hand[0] == 'Eight':
-                return 'P'
-            if hand[0] == 'Two' or hand[0] == 'Three' or hand[0] == 'Seven':
-                if dealer_upcard < 8:
-                    return 'P'
-                else:
-                    return 'H'
-            if hand[0] == 'Four':
-                if dealer_upcard == 5 or dealer_upcard == 6:
-                    return 'P'
-                else:
-                    return 'H'
-            if hand[0] == 'Six':
-                if dealer_upcard < 7:
-                    return 'P'
-                else:
-                    return 'H'
-            if hand[0] == 'Nine':
-                if dealer_upcard in [7, 10, 11]:
-                    return 'S'
-                else:
-                    return 'P'
-
-        if not ch.is_soft(hand):
-            if hand_val < 9:
-                return 'H'
-            if hand_val == 9:
-                if dealer_upcard == 2 or dealer_upcard > 6:
-                    return 'H'
-                else:
-                    return 'DH'
-            if hand_val == 10:
-                if dealer_upcard < 10:
-                    return 'DH'
-                else:
-                    return 'H'
-            if hand_val == 11:
-                return 'DH'
-            if hand_val == 12:
-                if dealer_upcard < 4 or dealer_upcard > 6:
-                    return 'H'
-                else:
-                    return 'S'
-            if hand_val > 12 and hand_val < 17:
-                if dealer_upcard < 7:
-                    return 'S'
-                else:
-                    return 'H'
-            if hand_val > 16:
-                return 'S'
-
+            lookup_string = str(CARDS[hand[0]])
+            if lookup_string == "11":
+                lookup_string = "A"
+            self.hand_decisions.append((lookup_string, dealer_upcard - 2))
+            if self.split_table[lookup_string][dealer_upcard - 2] == "P":
+                self.hand_decisions.append((lookup_string, dealer_upcard - 2))
+                return "P"
         if ch.is_soft(hand):
-            if hand_val == 12:
-                return 'H'
-            if hand_val == 13 or hand_val == 14:
-                if dealer_upcard == 5 or dealer_upcard == 6:
-                    return 'DH'
-                else:
-                    return 'H'
-            if hand_val == 15 or hand_val == 16:
-                if dealer_upcard < 4 or dealer_upcard > 6:
-                    return 'H'
-                else:
-                    return 'DH'
-            if hand_val == 17:
-                if dealer_upcard == 2 or dealer_upcard > 6:
-                    return 'H'
-                else:
-                    return 'DH'
-            if hand_val == 18:
-                if dealer_upcard < 7:
-                    return 'DS'
-                if dealer_upcard < 9:
-                    return 'S'
-                else:
-                    return 'H'
-            if hand_val == 19:
-                if dealer_upcard == 6:
-                    return 'DS'
-                else:
-                    return 'S'
-            if hand_val > 19:
-                return 'S'
+            lookup_string = "S" + str(ch.get_adjusted_value(hand))
+        else:
+            lookup_string = "H" + str(ch.get_adjusted_value(hand))
+        if hand is self.hand1:
+            self.hand_decisions.append((lookup_string, dealer_upcard - 2))
+        return self.decision_table[lookup_string][dealer_upcard - 2]
+
+    # def get_decision(self, hand_val, hand):
+    #     dealer_upcard = CARDS[self.dealer_hand[1]]
+    #     if len(hand) == 2 and hand[0] == hand[1] and hand is self.hand1:
+    #         if hand[0] == 'Ace' or hand[0] == 'Eight':
+    #             return 'P'
+    #         if hand[0] == 'Two' or hand[0] == 'Three' or hand[0] == 'Seven':
+    #             if dealer_upcard < 8:
+    #                 return 'P'
+    #             else:
+    #                 return 'H'
+    #         if hand[0] == 'Four':
+    #             if dealer_upcard == 5 or dealer_upcard == 6:
+    #                 return 'P'
+    #             else:
+    #                 return 'H'
+    #         if hand[0] == 'Six':
+    #             if dealer_upcard < 7:
+    #                 return 'P'
+    #             else:
+    #                 return 'H'
+    #         if hand[0] == 'Nine':
+    #             if dealer_upcard in [7, 10, 11]:
+    #                 return 'S'
+    #             else:
+    #                 return 'P'
+
+    #     if not ch.is_soft(hand):
+    #         if hand_val < 9:
+    #             return 'H'
+    #         if hand_val == 9:
+    #             if dealer_upcard == 2 or dealer_upcard > 6:
+    #                 return 'H'
+    #             else:
+    #                 return 'DH'
+    #         if hand_val == 10:
+    #             if dealer_upcard < 10:
+    #                 return 'DH'
+    #             else:
+    #                 return 'H'
+    #         if hand_val == 11:
+    #             return 'DH'
+    #         if hand_val == 12:
+    #             if dealer_upcard < 4 or dealer_upcard > 6:
+    #                 return 'H'
+    #             else:
+    #                 return 'S'
+    #         if hand_val > 12 and hand_val < 17:
+    #             if dealer_upcard < 7:
+    #                 return 'S'
+    #             else:
+    #                 return 'H'
+    #         if hand_val > 16:
+    #             return 'S'
+
+    #     if ch.is_soft(hand):
+    #         if hand_val == 12:
+    #             return 'H'
+    #         if hand_val == 13 or hand_val == 14:
+    #             if dealer_upcard == 5 or dealer_upcard == 6:
+    #                 return 'DH'
+    #             else:
+    #                 return 'H'
+    #         if hand_val == 15 or hand_val == 16:
+    #             if dealer_upcard < 4 or dealer_upcard > 6:
+    #                 return 'H'
+    #             else:
+    #                 return 'DH'
+    #         if hand_val == 17:
+    #             if dealer_upcard == 2 or dealer_upcard > 6:
+    #                 return 'H'
+    #             else:
+    #                 return 'DH'
+    #         if hand_val == 18:
+    #             if dealer_upcard < 7:
+    #                 return 'DS'
+    #             if dealer_upcard < 9:
+    #                 return 'S'
+    #             else:
+    #                 return 'H'
+    #         if hand_val == 19:
+    #             if dealer_upcard == 6:
+    #                 return 'DS'
+    #             else:
+    #                 return 'S'
+    #         if hand_val > 19:
+    #             return 'S'
