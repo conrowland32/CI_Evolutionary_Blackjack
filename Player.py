@@ -21,7 +21,7 @@ D  -> Default (to normal value)
 
 
 class Player:
-    def __init__(self, decision_table=None, split_table=None):
+    def __init__(self, decision_table=None, split_table=None, gen=0):
         self.decision_table = decision_table
         self.split_table = split_table
         self.money = 0.0
@@ -41,6 +41,7 @@ class Player:
         for hand in self.split_gene_score:
             self.split_gene_score[hand] = [0] * 10
         self.hand_decisions = []
+        self.gen = gen
 
     # Play number of hands with given shoe
     def play(self, shoe, num_hands):
@@ -77,22 +78,56 @@ class Player:
                 winner = ch.check_winner(self.hand1, self.dealer_hand)
                 if winner == 'player':
                     self.money += self.hand1_bet
-                    for decision in self.hand_decisions:
-                        if decision[0][0] in ["H", "S"]:
-                            self.decision_gene_score[decision[0]
-                                                     ][decision[1]] += 1
-                        else:
-                            self.split_gene_score[decision[0]
-                                                  ][decision[1]] += 1
+                    if self.gen != 0:
+                        for decision in self.hand_decisions:
+                            if decision[0][0] in ["H", "S", "DS", "DH"]:
+                                ref = self.decision_table[decision[0]
+                                                          ][decision[1]]
+                                tochange = [x for x in range(
+                                    4) if x != ref.index(max(ref))]
+                                ref[ref.index(max(ref))] += 0.03
+                                if ref[ref.index(max(ref))] > 1:
+                                    ref[ref.index(max(ref))] = 1
+                                for i in tochange:
+                                    ref[i] -= 0.01
+                                    if ref[i] < 0:
+                                        ref[i] = 0
+                            else:
+                                ref = self.split_table[decision[0]
+                                                       ][decision[1]]
+                                tochange = 1 - ref.index(max(ref))
+                                ref[ref.index(max(ref))] += 0.03
+                                if ref[ref.index(max(ref))] > 1:
+                                    ref[ref.index(max(ref))] = 1
+                                ref[tochange] -= 0.03
+                                if ref[tochange] < 0:
+                                    ref[tochange] = 0
                 elif winner == 'dealer':
                     self.money -= self.hand1_bet
-                    for decision in self.hand_decisions:
-                        if decision[0][0] in ["H", "S"]:
-                            self.decision_gene_score[decision[0]
-                                                     ][decision[1]] -= 1
-                        else:
-                            self.split_gene_score[decision[0]
-                                                  ][decision[1]] -= 1
+                    if self.gen != 0:
+                        for decision in self.hand_decisions:
+                            if decision[0][0] in ["H", "S", "DS", "DH"]:
+                                ref = self.decision_table[decision[0]
+                                                          ][decision[1]]
+                                tochange = [x for x in range(
+                                    4) if x != ref.index(max(ref))]
+                                ref[ref.index(max(ref))] -= 0.03
+                                if ref[ref.index(max(ref))] < 0:
+                                    ref[ref.index(max(ref))] = 0
+                                for i in tochange:
+                                    ref[i] += 0.01
+                                    if ref[i] > 1:
+                                        ref[i] = 1
+                            else:
+                                ref = self.split_table[decision[0]
+                                                       ][decision[1]]
+                                tochange = 1 - ref.index(max(ref))
+                                ref[ref.index(max(ref))] -= 0.03
+                                if ref[ref.index(max(ref))] < 0:
+                                    ref[ref.index(max(ref))] = 0
+                                ref[tochange] += 0.03
+                                if ref[tochange] > 1:
+                                    ref[tochange] = 1
             if self.hand2 is not None:
                 winner = ch.check_winner(self.hand2, self.dealer_hand)
                 if winner == 'player':
@@ -100,15 +135,6 @@ class Player:
                 elif winner == 'dealer':
                     self.money -= self.hand2_bet
 
-        for phand in self.decision_table:
-            for i in range(10):
-                if self.decision_gene_score[phand][i] < 0:
-                    self.decision_table[phand][i] = rand.choice(
-                        ["S", "H", "DS", "DH"])
-        for phand in self.split_table:
-            for i in range(10):
-                if self.split_gene_score[phand][i] < 0:
-                    self.split_table[phand][i] = rand.choice(["P", "D"])
         return (self.decision_table, self.split_table, self.money)
 
     # Play out a given hand using player's strategy
@@ -167,17 +193,28 @@ class Player:
             lookup_string = str(CARDS[hand[0]])
             if lookup_string == "11":
                 lookup_string = "A"
-            self.hand_decisions.append((lookup_string, dealer_upcard - 2))
-            if self.split_table[lookup_string][dealer_upcard - 2] == "P":
+            if self.split_table[lookup_string][dealer_upcard - 2].index(max(self.split_table[lookup_string][dealer_upcard - 2])) == 0:
                 self.hand_decisions.append((lookup_string, dealer_upcard - 2))
                 return "P"
+            # self.hand_decisions.append((lookup_string, dealer_upcard - 2))
+            # if self.split_table[lookup_string][dealer_upcard - 2] == "P":
+            #     self.hand_decisions.append((lookup_string, dealer_upcard - 2))
+            #     return "P"
         if ch.is_soft(hand):
             lookup_string = "S" + str(ch.get_adjusted_value(hand))
         else:
             lookup_string = "H" + str(ch.get_adjusted_value(hand))
         if hand is self.hand1:
             self.hand_decisions.append((lookup_string, dealer_upcard - 2))
-        return self.decision_table[lookup_string][dealer_upcard - 2]
+        if self.decision_table[lookup_string][dealer_upcard - 2].index(max(self.decision_table[lookup_string][dealer_upcard - 2])) == 0:
+            return "S"
+        elif self.decision_table[lookup_string][dealer_upcard - 2].index(max(self.decision_table[lookup_string][dealer_upcard - 2])) == 1:
+            return "H"
+        elif self.decision_table[lookup_string][dealer_upcard - 2].index(max(self.decision_table[lookup_string][dealer_upcard - 2])) == 2:
+            return "DH"
+        else:
+            return "DS"
+        # return self.decision_table[lookup_string][dealer_upcard - 2]
 
     # def get_decision(self, hand_val, hand):
     #     dealer_upcard = CARDS[self.dealer_hand[1]]

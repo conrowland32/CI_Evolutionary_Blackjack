@@ -1,0 +1,25 @@
+----
+Normal
+----
+Pop size: 60
+Hands per: 1000
+Generations: 100
+Mutation rate: 0.04
+
+
+----
+More generations (long)
+----
+Pop size: 60
+Hands per: 1000
+Generations: 250
+Mutation rate: 0.04
+
+
+----
+Small pop and fewer hands with more generations (small_hand)
+----
+Pop size: 30
+Hands per: 500
+Generations: 500
+Mutation rate: 0.04

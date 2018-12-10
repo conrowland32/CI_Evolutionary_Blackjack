@@ -1,22 +1,23 @@
 import sys
 import multiprocessing
 import random as rand
+# import matplotlib.pyplot as plt
 from Player import Player
 from Shoe import Shoe
 
 
 POPULATION_SIZE = 60
 NUMBER_DECKS = 4
-HANDS_PER_GENERATION = 10000
-NUMBER_GENERATIONS = 100
-MUTATION_RATE = 0.01
+HANDS_PER_GENERATION = 1000
+NUMBER_GENERATIONS = 20
+MUTATION_RATE = 0.04
 
 
 # Worker that creates a new shoe, new player with the given decision tables,
 #  and play the new player
-def worker(decision_table=None, split_table=None):
+def worker(decision_table=None, split_table=None, gen=0):
     shoe = Shoe(NUMBER_DECKS)
-    player = Player(decision_table, split_table)
+    player = Player(decision_table, split_table, gen)
     finish = player.play(shoe, HANDS_PER_GENERATION)
     return finish
 
@@ -27,16 +28,21 @@ def mutate(population, rate):
         individual = population[i]
         for key in individual[0]:
             for i, _ in enumerate(individual[0][key]):
-                if rand.random() < rate:
-                    individual[0][key][i] = rand.choice(
-                        ["S", "H", "DS", "DH"])
+                for x in range(4):
+                    if rand.random() < rate:
+                        individual[0][key][i][x] = rand.random()
         for key in individual[1]:
             for i, _ in enumerate(individual[1][key]):
-                if rand.random() < rate:
-                    individual[1][key][i] = rand.choice(["P", "D"])
+                for x in range(2):
+                    if rand.random() < rate:
+                        individual[1][key][i][x] = rand.random()
 
 
 if __name__ == "__main__":
+    # Lists for graphing
+    average_scores = []
+    best_scores = []
+
     # Initialize starting decision tables
     new_population = []
     for _ in range(POPULATION_SIZE):
@@ -54,53 +60,55 @@ if __name__ == "__main__":
 
         for hand in start_decision_table:
             for _ in range(10):
+                stops = [rand.random() for _ in range(3)]
+                stops.sort()
                 start_decision_table[hand].append(
-                    rand.choice(["S", "H", "DS", "DH"]))
+                    [stops[0], stops[1]-stops[0], stops[2]-stops[1], 1-stops[2]])
+                # start_decision_table[hand].append(
+                #     rand.choice(["S", "H", "DS", "DH"]))
 
         for hand in start_split_table:
             for _ in range(10):
-                start_split_table[hand].append(rand.choice(["P", "D"]))
+                stop = rand.random()
+                start_split_table[hand].append([stop, 1-stop])
+                # start_split_table[hand].append(rand.choice(["P", "D"]))
 
         new_population.append((start_decision_table, start_split_table))
 
     # Run generations
     for gen in range(NUMBER_GENERATIONS):
         # Spawn and run player processes
+        for ind, individual in enumerate(new_population):
+            new_population[ind] = individual + (gen,)
+
         with multiprocessing.Pool(POPULATION_SIZE) as pool:
             worker_return = pool.starmap(worker, new_population)
         print('Generation ' + str(gen+1) + ': ' +
               str(sum([x[2] for x in worker_return]) / len([x[2] for x in worker_return])) +
               '  (best: ' + str(max([x[2] for x in worker_return])) + ')')
+        average_scores.append(
+            sum([x[2] for x in worker_return]) / len([x[2] for x in worker_return]))
+        best_scores.append(max([x[2] for x in worker_return]))
 
         # Sort player returns by performance
         worker_return.sort(key=lambda tup: tup[2], reverse=True)
         survivors = worker_return[:int(POPULATION_SIZE/2)]
 
-        # # Get the top half of the population
-        # survivors = sorted(fitness_scores, reverse=True)[
-        #     :int(POPULATION_SIZE/2)]
-        # survivor_indices = []
-        # for individual in survivors:
-        #     occurences = [i for i, x in enumerate(
-        #         fitness_scores) if x == individual]
-        #     if len(occurences) > 1:
-        #         for ind in occurences:
-        #             if ind not in survivor_indices:
-        #                 survivor_indices.append(ind)
-        #     else:
-        #         survivor_indices.append(occurences[0])
-
-        # Every 10 generations, print our current most fit table
-        if gen % 10 == 0:
-            print(new_population[0])
-
         # Create new population and mutate some
         new_population = [(x[0], x[1]) for x in survivors for _ in range(2)]
-        # old_population = new_population.copy()
-        # new_population = [old_population[x]
-        #                   for x in survivor_indices for _ in range(2)]
-        # new_rate = MUTATION_RATE - ((MUTATION_RATE / NUMBER_GENERATIONS) * gen)
-        # mutate(new_population, new_rate)
+        new_rate = MUTATION_RATE - \
+            ((MUTATION_RATE / NUMBER_GENERATIONS) * gen)
+        mutate(new_population, new_rate)
 
-    print(new_population[0])
+    average_file = open("test/average.txt", 'w')
+    for score in average_scores:
+        average_file.write(str(score) + '\n')
+    average_file.close()
+
+    best_file = open("test/best.txt", 'w')
+    for score in best_scores:
+        best_file.write(str(score) + '\n')
+    best_file.close()
+
+    # print(new_population[0])
     sys.exit()
