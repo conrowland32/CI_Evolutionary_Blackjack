@@ -3,12 +3,13 @@ import multiprocessing
 import random as rand
 from Player import Player
 from Shoe import Shoe
+from sklearn.neural_network import MLPClassifier
 
 
-POPULATION_SIZE = 100
+POPULATION_SIZE = 60
 NUMBER_DECKS = 4
-HANDS_PER_GENERATION = 1000
-NUMBER_GENERATIONS = 1000
+HANDS_PER_GENERATION = 10000
+NUMBER_GENERATIONS = 100
 MUTATION_RATE = 0.01
 
 
