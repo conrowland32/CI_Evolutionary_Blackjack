@@ -183,9 +183,17 @@ if __name__ == "__main__":
         average_scores.append(sum([x[0] for x in worker_return]) / len([x[0] for x in worker_return]))
         best_scores.append(max([x[0] for x in worker_return]))
 
+        """
+        Now that all the workers have been run, fitness_scores should contain
+        the total money won or lost by each player. This is where you should
+        add the additional learning for your solution: backpropogation,
+        mutation, crossover, etc. When you are done with this step, be sure to
+        create the new population and store it in new_population the same as
+        before.
+        """
+        
         new_population = []
         for x in worker_return:
-
             first_network = [MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(1), random_state=1), x[1][1], x[1][2]]
             second_network = [MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(1), random_state=1), x[2][1], x[2][2]]
             third_network = [MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5), random_state=1), x[3][1], x[3][2]]
