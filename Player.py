@@ -1,8 +1,8 @@
 import random as rand
 import CardHelpers as ch
 
-CARDS = {"Two": 2, "Three": 3, "Four": 4, "Five": 5, "Six": 6, "Seven": 7,
-         "Eight": 8, "Nine": 9, "Ten": 10, "Jack": 10, "Queen": 10, "King": 10, "Ace": 11}
+CARDS = {"Two": 2., "Three": 3., "Four": 4., "Five": 5., "Six": 6., "Seven": 7.,
+         "Eight": 8., "Nine": 9., "Ten": 10., "Jack": 10., "Queen": 10., "King": 10., "Ace": 11.}
 
 BET_VALUE = 2
 
@@ -21,9 +21,10 @@ D  -> Default (to normal value)
 
 
 class Player:
-    def __init__(self, decision_table=None, split_table=None):
-        self.decision_table = decision_table
-        self.split_table = split_table
+    def __init__(self, first_network=None, second_network=None, third_network=None):
+        self.first_network = first_network
+        self.second_network = second_network
+        self.third_network = third_network
         self.money = 0.0
 
     # Play number of hands with given shoe
@@ -68,7 +69,7 @@ class Player:
                     self.money += self.hand2_bet
                 elif winner == 'dealer':
                     self.money -= self.hand2_bet
-        return self.money
+        return [self.money, self.first_network, self.second_network, self.third_network]
 
     # Play out a given hand using player's strategy
     def play_hand(self, shoe, hand):
@@ -131,88 +132,115 @@ class Player:
         The sample provided below is hard-coded basic strategy. The player
         return for this method should be ~99.5%
         """
+        expected_y = ''
+
         dealer_upcard = CARDS[self.dealer_hand[1]]
         if len(hand) == 2 and hand[0] == hand[1] and hand is self.hand1:
             if hand[0] == 'Ace' or hand[0] == 'Eight':
-                return 'P'
+                expected_y = 'P'
             if hand[0] == 'Two' or hand[0] == 'Three' or hand[0] == 'Seven':
                 if dealer_upcard < 8:
-                    return 'P'
+                    expected_y = 'P'
                 else:
-                    return 'H'
+                    expected_y = 'H'
             if hand[0] == 'Four':
                 if dealer_upcard == 5 or dealer_upcard == 6:
-                    return 'P'
+                    expected_y = 'P'
                 else:
-                    return 'H'
+                    expected_y = 'H'
             if hand[0] == 'Six':
                 if dealer_upcard < 7:
-                    return 'P'
+                    expected_y = 'P'
                 else:
-                    return 'H'
+                    expected_y = 'H'
             if hand[0] == 'Nine':
                 if dealer_upcard in [7, 10, 11]:
-                    return 'S'
+                    expected_y = 'S'
                 else:
-                    return 'P'
+                    expected_y = 'P'
 
         if not ch.is_soft(hand):
             if hand_val < 9:
-                return 'H'
+                expected_y = 'H'
             if hand_val == 9:
                 if dealer_upcard == 2 or dealer_upcard > 6:
-                    return 'H'
+                    expected_y = 'H'
                 else:
-                    return 'DH'
+                    expected_y = 'DH'
             if hand_val == 10:
                 if dealer_upcard < 10:
-                    return 'DH'
+                    expected_y = 'DH'
                 else:
-                    return 'H'
+                    expected_y = 'H'
             if hand_val == 11:
-                return 'DH'
+                expected_y = 'DH'
             if hand_val == 12:
                 if dealer_upcard < 4 or dealer_upcard > 6:
-                    return 'H'
+                    expected_y = 'H'
                 else:
-                    return 'S'
+                    expected_y = 'S'
             if hand_val > 12 and hand_val < 17:
                 if dealer_upcard < 7:
-                    return 'S'
+                    expected_y = 'S'
                 else:
-                    return 'H'
+                    expected_y = 'H'
             if hand_val > 16:
-                return 'S'
+                expected_y = 'S'
 
         if ch.is_soft(hand):
             if hand_val == 12:
-                return 'H'
+                expected_y = 'H'
             if hand_val == 13 or hand_val == 14:
                 if dealer_upcard == 5 or dealer_upcard == 6:
-                    return 'DH'
+                    expected_y = 'DH'
                 else:
-                    return 'H'
+                    expected_y = 'H'
             if hand_val == 15 or hand_val == 16:
                 if dealer_upcard < 4 or dealer_upcard > 6:
-                    return 'H'
+                    expected_y = 'H'
                 else:
-                    return 'DH'
+                    expected_y = 'DH'
             if hand_val == 17:
                 if dealer_upcard == 2 or dealer_upcard > 6:
-                    return 'H'
+                    expected_y = 'H'
                 else:
-                    return 'DH'
+                    expected_y = 'DH'
             if hand_val == 18:
                 if dealer_upcard < 7:
-                    return 'DS'
+                    expected_y = 'DS'
                 if dealer_upcard < 9:
-                    return 'S'
+                    expected_y = 'S'
                 else:
-                    return 'H'
+                    expected_y = 'H'
             if hand_val == 19:
                 if dealer_upcard == 6:
-                    return 'DS'
+                    expected_y = 'DS'
                 else:
-                    return 'S'
+                    expected_y = 'S'
             if hand_val > 19:
-                return 'S'
+                expected_y = 'S'
+
+        if len(hand) == 2:
+            if hand[0] == hand[1] and hand is self.hand1:
+                temp = self.first_network[0].predict([[CARDS[hand[0]], CARDS[hand[1]], dealer_upcard]])
+                self.first_network[1].append([CARDS[hand[0]], CARDS[hand[1]], dealer_upcard])
+                self.first_network[2].append(1 if expected_y == 'P' else 0)
+                if temp[0] == 1:
+                    return 'P'
+
+            temp = self.second_network[0].predict([[CARDS[hand[0]], CARDS[hand[0]], dealer_upcard]])
+            self.second_network[1].append([CARDS[hand[0]], CARDS[hand[1]], dealer_upcard])
+            self.second_network[2].append(1 if expected_y in ['DH', 'DS'] else 0)
+            if temp[0] == 1:
+                return 'DH'
+
+        temp_cards = [CARDS[hand[idx]] if idx < len(hand) else 0 for idx in range(16)]
+        temp_cards[-1] = dealer_upcard
+
+        temp = self.third_network[0].predict([temp_cards])
+        self.third_network[1].append(temp_cards)
+        self.third_network[2].append(1 if expected_y == 'H' else 0)
+        if temp[0] == 1:
+            return 'H'
+        return 'S'
+
